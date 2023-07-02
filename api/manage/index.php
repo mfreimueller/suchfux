@@ -1,6 +1,6 @@
 <?php
-require_once 'query.php';
-require_once 'database.php';
+require_once '../query.php';
+require_once '../database.php';
 
 $database = new Database();
 $database->open();
@@ -14,7 +14,11 @@ $searchQueries = $database->getSearchQueries();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Suchfux</title>
-    <link rel="stylesheet" href="style.css">
+	<style>
+		.hidden {
+			display: none;
+		}
+	</style>
   </head>
   <body>
     <table>

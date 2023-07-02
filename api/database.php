@@ -41,9 +41,21 @@ class Database {
 	}
 
 	function removeSearchQuery($query) {
-		echo "DELETE FROM SearchQuerySuggestions WHERE query = '" . urlencode($query) . "'";
 		$this->db->exec("DELETE FROM SearchQuerySuggestions WHERE query = '" . urlencode($query) . "'");
 		$this->db->exec("DELETE FROM SearchQueries WHERE query = '" . urlencode($query) . "'");
+	}
+
+	/**
+	 * Updates a search query by first removing the old suggestions
+	 * and then inserting the new ones.
+	 */
+	function updateSearchQuery($query) {
+		$this->db->exec("DELETE FROM SearchQuerySuggestions WHERE query = '" . urlencode($query->query) . "'");
+		
+		for ($idx = 0; $idx < count($query->suggestions); $idx++) {
+			$suggestion = $query->suggestions[$idx];
+			$this->db->exec("INSERT INTO SearchQuerySuggestions (query, suggestion, `order`) VALUES ('" . urlencode($query->query) . "', '" . urlencode($suggestion) . "', $idx)");
+		}
 	}
 
 	public function getSearchQueries() {

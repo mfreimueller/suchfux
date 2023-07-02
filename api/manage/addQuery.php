@@ -1,6 +1,6 @@
 <?php
 
-require_once 'database.php';
+require_once '../database.php';
 require_once 'googleService.php';
 
 $queryToAdd = str_replace("%20", " ", $_GET["q"]);
