@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Suchfux</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+	<div class="main">
+		<div class="center row">
+			<h1>Suchfux</h1>
+			<h2>Ein Fux, wer das errät</h2>
+		</div>
+
+		<div class="horizontal row group">
+			<input class="readonly right" readonly="readonly" id="query" type="text">
+			<input type="text" id="suggestion">
+		</div>
+
+		<div class="horizontal center row">
+			<button class="restart" id="newQuery">Neuer Vorschlag</button>
+			<button class="restart" id="nextQuery" style="display: none;">Nächstes Rätsel</button>
+		</div>
+
+		<div class="horizontal group row">
+			<div>
+				<div class="result">
+					<span>1. </span>
+					<span class="result-text" data-target="result-0"></span>
+					<span>100</span>
+				</div>
+				<div class="result">
+					<span>2. </span>
+					<span class="result-text" data-target="result-1"></span>
+					<span>90</span>
+				</div>
+				<div class="result">
+					<span>3. </span>
+					<span class="result-text" data-target="result-2"></span>
+					<span>80</span>
+				</div>
+				<div class="result">
+					<span>4. </span>
+					<span class="result-text" data-target="result-3"></span>
+					<span>70</span>
+				</div>
+				<div class="result">
+					<span>5. </span>
+					<span class="result-text" data-target="result-4"></span>
+					<span>60</span>
+				</div>
+			</div>
+			<div>
+				<div class="result">
+					<span>6. </span>
+					<span class="result-text" data-target="result-5"></span>
+					<span>50</span>
+				</div>
+				<div class="result">
+					<span>7. </span>
+					<span class="result-text" data-target="result-6"></span>
+					<span>40</span>
+				</div>
+				<div class="result">
+					<span>8. </span>
+					<span class="result-text" data-target="result-7"></span>
+					<span>30</span>
+				</div>
+				<div class="result">
+					<span>9. </span>
+					<span class="result-text" data-target="result-8"></span>
+					<span>20</span>
+				</div>
+				<div class="result">
+					<span>10. </span>
+					<span class="result-text" data-target="result-9"></span>
+					<span>10</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="horizontal spaced row">
+			<h2><span id="roundCounter">1</span>. Runde</h2>
+			<h2><span id="score">0</span> Punkte</h2>
+			<h2><span id="attemptCounter">1</span>. Versuch von <span id="maxAttempts">3</span></h2>
+		</div>
+
+		<div class="horizontal limited spaced row">
+			<div>
+				<h2>Einstellungen</h2>
+				<label for="max-attempts">Maximale Versuche</label>
+				<input id="max-attempts" name="max-attempts" type="number" value="3" min="0" max="666">
+				<button style="margin: 8px 0px" id="saveSettings">Speichern</button>
+			</div>
+			<div class="license">
+				suchfux ist ein Hobbyprojekt das für die Verwendung durch PietSmiet
+				erschaffen wurde. Sämtliche Ähnlichkeiten zu vergleichbaren Projekten sind
+				nicht beabsichtigt und rein zufällig.<br>
+				suchfux verwendet die Google API, um die Top 10 Suchergebnisse diverser
+				Suchprompts abzufragen.<br>
+				suchfux loggt keine Benutzerdaten und speichert am Client-Computer nur
+				die für das Spiel notwendigen Session-Daten.<br>
+				Der Quelltext ist auf Github verfügbar und via
+				<a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 1.0 Universal</a>
+				lizenziert.
+			</div>
+		</div>
+	</div>
+
+	<script src="https://code.jquery.com/jquery-3.7.0.js"
+		integrity="sha256-JlqSTELeR4TLqP0OG9dxM7yDPqX1ox/HfgiSLBj8+kM=" crossorigin="anonymous"></script>
+	<script>
+		$(document).ready(function () {
+			$("#nextQuery").hide();
+
+			var session = getSession();
+			if (!session) {
+				session = {
+					query: {},
+					attempts: 0,
+					maxAttempts: 3,
+					answers: [],
+					round: 0,
+					score: 0
+				};
+				writeSession(session);
+
+				fetchQuery();
+			} else {
+				$("#query").val(session.query.query + " ... ");
+				$("#max-attempts").val(session.maxAttempts);
+
+				// display all already given answers
+				for (var idx = 0; idx < session.answers.length; idx++) {
+					var sidx = session.answers[idx];
+					var suggestion = session.query.suggestions[sidx];
+					$('*[data-target="result-' + sidx + '"]').text(suggestion);
+				}
+
+				if (attemptsExhausted()) {
+					finalizeBoard();
+				}
+
+				updateStatistics();
+			}
+		});
+
+		function getSession() {
+			return JSON.parse(localStorage.getItem("session"));
+		}
+
+		function writeSession(session) {
+			localStorage.setItem("session", JSON.stringify(session));
+		}
+
+		function fetchQuery() {
+			$.get("randomQuery.php", function (data) {
+				$("#query").val(data.query);
+
+				var session = getSession();
+				session.round++;
+				session.query = data;
+				writeSession(session);
+
+				$("#query").val(session.query.query + " ... ");
+			});
+		}
+
+		function updateStatistics() {
+			var session = getSession();
+
+			$("#roundCounter").text(session.round);
+			$("#score").text(session.score);
+			$("#attemptCounter").text(session.attempts + 1);
+			$("#maxAttempts").text(session.maxAttempts);
+		}
+
+		function finalizeBoard() {
+			var session = getSession();
+
+			for (var idx = 0; idx < 10; idx++) {
+				if (!session.answers.includes(idx)) {
+					var suggestion = session.query.suggestions[idx];
+					$('*[data-target="result-' + idx + '"]').text(suggestion);
+					$('*[data-target="result-' + idx + '"]').addClass("light");
+				}
+			}
+
+			$("#newQuery").hide();
+			$("#nextQuery").show();
+		}
+
+		/**
+		 * Removes all result texts and resets the counter.
+		 */
+		function clearBoard() {
+			var session = getSession();
+			session.attempts = 0;
+			session.answers = [];
+
+			writeSession(session);
+			updateStatistics();
+
+			$("#suggestion").val("");
+
+			for (var idx = 0; idx < 10; idx++) {
+				$('*[data-target="result-' + idx + '"]').text("");
+
+				$('*[data-target="result-' + idx + '"]').removeClass("light");
+			}
+
+			$("#newQuery").show();
+			$("#nextQuery").hide();
+		}
+
+		function attemptsExhausted() {
+			var session = getSession();
+			return session.attempts >= session.maxAttempts;
+		}
+
+		$("#saveSettings").click(function () {
+			var session = getSession();
+			var newMaxAttempts = +($("#max-attempts").val());
+
+			session.maxAttempts = newMaxAttempts;
+			writeSession(session);
+
+			// we reset the current game and fetch a new query
+			clearBoard();
+			fetchQuery();
+		});
+
+		$(".restart").click(function () {
+			clearBoard();
+			fetchQuery();
+		});
+
+		$("#suggestion").on("keydown", function(event) {
+			// keyCode 13 is enter key
+			if(event.which == 13 && !attemptsExhausted()) {
+				var suggestion = $(this).val();
+
+				var session = getSession();
+				var correctAnswer = false;
+
+				var completeSearchText = session.query.query + suggestion;
+				var completeSearchTextWithSpace = session.query.query + " " + suggestion;
+
+				var searchTerms = [
+					session.query.query + suggestion,
+					session.query.query + " " + suggestion
+				];
+
+				for (var idxST = 0; idxST < searchTerms.length; idxST++) {
+					var searchTerm = searchTerms[idxST];
+					var alreadyIncluded = false;
+
+					for (var idx = 0; idx < session.query.suggestions.length; idx++) {
+						var correct = session.query.suggestions[idx];
+						if (correct.toLowerCase() === searchTerm.toLowerCase()) {
+							// it is the correct suggestion.
+							// if the user already prompted the answer before, we increase his counter
+							if (session.answers.includes(idx)) {
+								alreadyIncluded = true;
+							} else {
+								correctAnswer = true;
+	
+								session.answers.push(idx);
+								session.score += (100 - (idx * 10));
+	
+								$('*[data-target="result-' + idx + '"]').text(correct);
+							}
+	
+							break;
+						}
+					}
+
+					if (alreadyIncluded) {
+						session.attempts++;
+						break;
+					}
+				}
+
+				$("#suggestion").val("");
+
+				if (correctAnswer) {
+					writeSession(session);
+
+					// has the user given all suggestions?
+					if (session.answers === session.query.suggestions.length) {
+						finalizeBoard();
+					} else {
+						updateStatistics();
+					}
+				} else {
+					session.attempts++;
+					writeSession(session);
+
+					if (attemptsExhausted()) {
+						finalizeBoard();
+					} else {
+						updateStatistics();
+					}
+				}
+			}
+		});
+	</script>
+</body>
+
+</html>
