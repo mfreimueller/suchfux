@@ -43,7 +43,19 @@ function writeSession(session) {
 	localStorage.setItem("session", JSON.stringify(session));
 }
 
-function fetchQuery() {
+function fetchQuery() {/*
+
+	$.ajax({
+		url: baseUrl + "/randomQuery.php",
+		headers: {  'Access-Control-Allow-Origin': 'https://michaeleph.at' },
+		data: data,
+		type: 'dataType',
+		/* etc *
+		success: function(jsondata){
+	 
+		}
+	 })*/
+
 	$.get(baseUrl + "/randomQuery.php", function (data) {
 		$("#query").val(data.query);
 
